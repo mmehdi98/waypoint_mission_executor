@@ -1,0 +1,7 @@
+MoveInstruction[] path
+---
+string message
+---
+RobTarget current_target
+RobTarget current_position
+float32 distance_to_next
