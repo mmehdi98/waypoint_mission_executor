@@ -8,10 +8,18 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(my_robot_interfaces REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(turtlesim_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
+add_executable(turtle_controller src/turtle_controller.cpp)
+target_link_libraries(turtle_controller PUBLIC rclcpp::rclcpp ${rclcpp_action_TARGETS} ${my_robot_interfaces_TARGETS} ${turtlesim_msgs_TARGETS} ${geometry_msgs_TARGETS})
+
+install(TARGETS
+turtle_controller
+DESTINATION lib/${PROJECT_NAME}/
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

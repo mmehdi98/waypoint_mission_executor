@@ -41,17 +41,22 @@ public:
         vel_cmd_publisher_->publish(vel_cmd_);
     }
 
-    rclcpp_action::GoalResponse goalCallback(const rclcpp_action::GoalUUID uuid, std::shared_ptr<const MoveAlongPath::Goal> goal){
+    rclcpp_action::GoalResponse goalCallback([[maybe_unused]] const rclcpp_action::GoalUUID uuid, std::shared_ptr<const MoveAlongPath::Goal> goal){
         auto path = goal -> path;
-        for (MoveInstruction instruction : path){
-            if (false)
+        for (std::size_t i=0; i < path.size(); i++){
+            const MoveInstruction& instruction = path[i];
+            std::string reason = validateInstruction_(instruction);
+            if (!reason.empty()){
+                RCLCPP_ERROR(this->get_logger(), "Instruction %zu rejected: %s", i, reason.c_str());
                 return rclcpp_action::GoalResponse::REJECT;
+            }
         }
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
-    rclcpp_action::CancelResponse cancelCallback(const std::shared_ptr<MoveAlongPathGoalHandle>& goal_handle){
-
+    rclcpp_action::CancelResponse cancelCallback([[maybe_unused]] const std::shared_ptr<MoveAlongPathGoalHandle>& goal_handle){
+        RCLCPP_INFO(this->get_logger(), "Received a cancel request");
+        return rclcpp_action::CancelResponse::ACCEPT;
     }
 
     void acceptedCallback(const std::shared_ptr<MoveAlongPathGoalHandle>& goal_handle){
@@ -68,47 +73,66 @@ private:
     Twist vel_cmd_;
     MoveInstruction current_instruction_;
     std::shared_ptr<MoveAlongPathGoalHandle> active_goal_;
-    std::shared_ptr<MoveAlongPathGoalHandle> previous_goal_;
     std::deque<std::shared_ptr<MoveAlongPathGoalHandle>> request_queue_;
-    int path_index_;
+    std::size_t path_index_ = 0;
 
     void motionPlanner_(){
-        std::vector<MoveInstruction> path;
-
-        if (request_queue_.size() != 0){
-            previous_goal_ = active_goal_;
-            active_goal_ = request_queue_[0];
-            path = active_goal_ ->get_goal()->path;
-        }
-        else{
-            active_goal_ = nullptr;
-        }
-
-        if ((previous_goal_ != active_goal_))
-            path_index_ = 0;
-
-        if (computeRemainingDistance_(current_pose_, path[path_index_].target) <= path[path_index_].zone_data)
-            ++path_index_;
-
-        if (path_index_ >= path.size()){
-            path_index_ = 0;
-            
-            auto result = std::make_shared<MoveAlongPath::Result>();
-            result -> message = "Finished path";
-            request_queue_[0]->succeed(result);
-            request_queue_.pop_front();
-
-        }
         
-        current_instruction_ = path[path_index_];
+        while(true){
+            if(!active_goal_ && !request_queue_.empty()){
+                path_index_ = 0;
+                active_goal_ = request_queue_.front();
+            }
+
+            if (!active_goal_)
+                return;
+            
+            const std::vector<MoveInstruction>& path = active_goal_ ->get_goal()->path;
+
+            if (getDistance_(current_pose_, path[path_index_].target) <= path[path_index_].zone_data)
+                ++path_index_;
+
+            if (path_index_ >= path.size()){
+                auto result = std::make_shared<MoveAlongPath::Result>();
+                result -> message = "Finished path";
+                request_queue_[0]->succeed(result);
+                request_queue_.pop_front();
+                active_goal_ = nullptr;
+                
+                continue;
+            }
+
+            current_instruction_ = active_goal_->get_goal()->path[path_index_];
+            return;
+        }
     }
 
     Twist computeVelCmd_(const Pose& current_pose, const MoveInstruction& current_instruction) const{
+        Twist result;
+        (void)current_pose;
+        (void)current_instruction;
 
+        return result;
     }
 
-    double computeRemainingDistance_(const Pose& current_pose, const RobTarget& target){
+    double getDistance_(const Pose& current_pose, const RobTarget& target) const{
+        return sqrt(pow((current_pose.x-target.x),2)+pow((current_pose.y-target.y),2));
+    }
 
+    std::string validateInstruction_(const MoveInstruction& instruction) const{
+        if (instruction.target.x > 11 || instruction.target.x < 0){
+            return "Target out of range";
+        }
+        if (instruction.target.y > 11 || instruction.target.y < 0){
+            return "Target out of range";
+        }
+        if (instruction.velocity <= 0.01){
+            return "Velocity too low";
+        }
+        if (instruction.zone_data < 0 || instruction.zone_data > 5){
+            return "Zone data too large";
+        }
+        return "";
     }
 
 };
