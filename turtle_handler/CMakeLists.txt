@@ -16,8 +16,12 @@ find_package(geometry_msgs REQUIRED)
 add_executable(turtle_controller src/turtle_controller.cpp)
 target_link_libraries(turtle_controller PUBLIC rclcpp::rclcpp ${rclcpp_action_TARGETS} ${my_robot_interfaces_TARGETS} ${turtlesim_msgs_TARGETS} ${geometry_msgs_TARGETS})
 
+add_executable(mission_client src/mission_client.cpp)
+target_link_libraries(mission_client PUBLIC rclcpp::rclcpp ${rclcpp_action_TARGETS} ${my_robot_interfaces_TARGETS})
+
 install(TARGETS
 turtle_controller
+mission_client
 DESTINATION lib/${PROJECT_NAME}/
 )
 
