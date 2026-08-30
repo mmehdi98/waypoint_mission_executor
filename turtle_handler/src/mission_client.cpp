@@ -50,13 +50,14 @@ private:
         }
         std::string message = result.result -> message;
         RCLCPP_INFO(this->get_logger(), "Result: %s", message.c_str());
+        rclcpp::shutdown();
     }
 };
 
 int main(int argc, char** argv){
     MoveInstruction instruction;
-    instruction.target.x = 7;
-    instruction.target.y = 7;
+    instruction.target.x = 3;
+    instruction.target.y = 2;
     instruction.target.theta = 0.5;
     instruction.velocity = 1.0;
     instruction.zone_data = 0.2;

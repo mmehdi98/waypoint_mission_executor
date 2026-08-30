@@ -109,8 +109,21 @@ private:
 
     Twist computeVelCmd_(const Pose& current_pose, const MoveInstruction& current_instruction) const{
         Twist result;
-        (void)current_pose;
-        (void)current_instruction;
+        double Kv = 2;
+        double Kh = 10;
+        
+        double theta_d = std::atan2((current_instruction.target.y-current_pose.y),(current_instruction.target.x-current_pose.x));
+        double error_theta = std::remainder(theta_d - current_pose.theta, 2*M_PI);
+        double velocity_d = Kv*getDistance_(current_pose, current_instruction.target)*(cos(error_theta/2)*cos(error_theta/2));
+        
+
+        if (velocity_d > current_instruction.velocity)
+            velocity_d = current_instruction.velocity;
+
+        double omega_d = ((current_pose.x-current_instruction.target.x)*current_pose.linear_velocity*std::sin(current_pose.theta)-(current_pose.y-current_instruction.target.y)*current_pose.linear_velocity*std::cos(current_pose.theta))/pow(getDistance_(current_pose, current_instruction.target),2);
+
+        result.linear.x = velocity_d;
+        result.angular.z = omega_d + Kh*error_theta;
 
         return result;
     }
