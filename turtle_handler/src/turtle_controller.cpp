@@ -5,6 +5,8 @@
 #include "my_robot_interfaces/action/move_along_path.hpp"
 #include "my_robot_interfaces/msg/rob_target.hpp"
 #include "my_robot_interfaces/msg/move_instruction.hpp"
+#include "turtle_handler/controller.hpp"
+#include "turtle_handler/conversions.hpp"
 
 using Twist = geometry_msgs::msg::Twist;
 using Pose = turtlesim_msgs::msg::Pose;
@@ -32,7 +34,7 @@ public:
         motionPlanner_();
         
         if (active_goal_){
-            vel_cmd_ = computeVelCmd_(current_pose, current_instruction_);
+            vel_cmd_ = turtle_handler::toTwist(turtle_handler::computeVelCmd(turtle_handler::toPose(current_pose), turtle_handler::toMoveInstruction(current_instruction_)));
         }
         else{
             vel_cmd_.linear.x = 0;
@@ -74,7 +76,11 @@ private:
     MoveInstruction current_instruction_;
     std::shared_ptr<MoveAlongPathGoalHandle> active_goal_;
     std::deque<std::shared_ptr<MoveAlongPathGoalHandle>> request_queue_;
+    std::vector<MoveInstruction> active_path_;
     std::size_t path_index_ = 0;
+    double dx_;
+    double dy_;
+    double remaining_dist_;
 
     void motionPlanner_(){
         
@@ -87,12 +93,17 @@ private:
             if (!active_goal_)
                 return;
             
-            const std::vector<MoveInstruction>& path = active_goal_ ->get_goal()->path;
+            active_path_ = active_goal_ ->get_goal()->path;
 
-            if (getDistance_(current_pose_, path[path_index_].target) <= path[path_index_].zone_data)
+            dx_ = current_pose_.x - active_path_[path_index_].target.x;
+            dy_ = current_pose_.y - active_path_[path_index_].target.y;
+            remaining_dist_ = sqrt(dx_*dx_+dy_*dy_);
+
+
+            if (remaining_dist_<= active_path_[path_index_].zone_data)
                 ++path_index_;
 
-            if (path_index_ >= path.size()){
+            if (path_index_ >= active_path_.size()){
                 auto result = std::make_shared<MoveAlongPath::Result>();
                 result -> message = "Finished path";
                 request_queue_[0]->succeed(result);
@@ -105,31 +116,6 @@ private:
             current_instruction_ = active_goal_->get_goal()->path[path_index_];
             return;
         }
-    }
-
-    Twist computeVelCmd_(const Pose& current_pose, const MoveInstruction& current_instruction) const{
-        Twist result;
-        double Kv = 2;
-        double Kh = 10;
-        
-        double theta_d = std::atan2((current_instruction.target.y-current_pose.y),(current_instruction.target.x-current_pose.x));
-        double error_theta = std::remainder(theta_d - current_pose.theta, 2*M_PI);
-        double velocity_d = Kv*getDistance_(current_pose, current_instruction.target)*(cos(error_theta/2)*cos(error_theta/2));
-        
-
-        if (velocity_d > current_instruction.velocity)
-            velocity_d = current_instruction.velocity;
-
-        double omega_d = ((current_pose.x-current_instruction.target.x)*current_pose.linear_velocity*std::sin(current_pose.theta)-(current_pose.y-current_instruction.target.y)*current_pose.linear_velocity*std::cos(current_pose.theta))/pow(getDistance_(current_pose, current_instruction.target),2);
-
-        result.linear.x = velocity_d;
-        result.angular.z = omega_d + Kh*error_theta;
-
-        return result;
-    }
-
-    double getDistance_(const Pose& current_pose, const RobTarget& target) const{
-        return sqrt(pow((current_pose.x-target.x),2)+pow((current_pose.y-target.y),2));
     }
 
     std::string validateInstruction_(const MoveInstruction& instruction) const{
