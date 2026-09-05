@@ -1,11 +1,11 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
-#include "my_robot_interfaces/action/move_along_path.hpp"
+#include "waypoint_interfaces/action/move_along_path.hpp"
 
-using MoveAlongPath = my_robot_interfaces::action::MoveAlongPath;
+using MoveAlongPath = waypoint_interfaces::action::MoveAlongPath;
 using MoveAlongPathGoalHandle = rclcpp_action::ClientGoalHandle<MoveAlongPath>;
-using MoveInstruction = my_robot_interfaces::msg::MoveInstruction;
+using MoveInstruction = waypoint_interfaces::msg::MoveInstruction;
 using namespace std::placeholders;
 
 class MissionClient : public rclcpp::Node

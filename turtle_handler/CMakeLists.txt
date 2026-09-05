@@ -9,7 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
-find_package(my_robot_interfaces REQUIRED)
+find_package(waypoint_interfaces REQUIRED)
 find_package(turtlesim_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
@@ -17,10 +17,10 @@ add_library(controller STATIC src/controller.cpp)
 target_include_directories(controller PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 add_executable(turtle_controller src/turtle_controller.cpp)
-target_link_libraries(turtle_controller PRIVATE rclcpp::rclcpp controller ${rclcpp_action_TARGETS} ${my_robot_interfaces_TARGETS} ${turtlesim_msgs_TARGETS} ${geometry_msgs_TARGETS})
+target_link_libraries(turtle_controller PRIVATE rclcpp::rclcpp controller ${rclcpp_action_TARGETS} ${waypoint_interfaces_TARGETS} ${turtlesim_msgs_TARGETS} ${geometry_msgs_TARGETS})
 
 add_executable(mission_client src/mission_client.cpp)
-target_link_libraries(mission_client PRIVATE rclcpp::rclcpp ${rclcpp_action_TARGETS} ${my_robot_interfaces_TARGETS})
+target_link_libraries(mission_client PRIVATE rclcpp::rclcpp ${rclcpp_action_TARGETS} ${waypoint_interfaces_TARGETS})
 
 install(TARGETS
 turtle_controller

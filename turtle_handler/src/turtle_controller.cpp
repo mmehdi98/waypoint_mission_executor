@@ -2,18 +2,18 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "turtlesim_msgs/msg/pose.hpp"
-#include "my_robot_interfaces/action/move_along_path.hpp"
-#include "my_robot_interfaces/msg/rob_target.hpp"
-#include "my_robot_interfaces/msg/move_instruction.hpp"
+#include "waypoint_interfaces/action/move_along_path.hpp"
+#include "waypoint_interfaces/msg/rob_target.hpp"
+#include "waypoint_interfaces/msg/move_instruction.hpp"
 #include "turtle_handler/controller.hpp"
 #include "turtle_handler/conversions.hpp"
 
 using Twist = geometry_msgs::msg::Twist;
 using Pose = turtlesim_msgs::msg::Pose;
-using MoveAlongPath = my_robot_interfaces::action::MoveAlongPath;
+using MoveAlongPath = waypoint_interfaces::action::MoveAlongPath;
 using MoveAlongPathGoalHandle = rclcpp_action::ServerGoalHandle<MoveAlongPath>;
-using RobTarget = my_robot_interfaces::msg::RobTarget;
-using MoveInstruction = my_robot_interfaces::msg::MoveInstruction;
+using RobTarget = waypoint_interfaces::msg::RobTarget;
+using MoveInstruction = waypoint_interfaces::msg::MoveInstruction;
 using namespace std::placeholders;
 
 class TurtleController : public rclcpp::Node

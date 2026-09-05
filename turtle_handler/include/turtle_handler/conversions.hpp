@@ -4,7 +4,7 @@
 #include "turtle_handler/controller.hpp"
 #include "turtlesim_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "my_robot_interfaces/msg/move_instruction.hpp"
+#include "waypoint_interfaces/msg/move_instruction.hpp"
 
 namespace turtle_handler{
 
@@ -25,7 +25,7 @@ namespace turtle_handler{
         return result;
     }
 
-    inline MoveInstruction toMoveInstruction(const my_robot_interfaces::msg::MoveInstruction& instruction){
+    inline MoveInstruction toMoveInstruction(const waypoint_interfaces::msg::MoveInstruction& instruction){
         MoveInstruction result;
         result.x = instruction.target.x;
         result.y = instruction.target.y;
