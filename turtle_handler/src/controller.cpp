@@ -3,8 +3,8 @@
 
 turtle_handler::Command turtle_handler::computeVelCmd(const turtle_handler::Pose& current_pose, const turtle_handler::MoveInstruction& instruction) {
     turtle_handler::Command result;
-    double Kv = 2;
-    double Kh = 10;
+    double Kv = 20;
+    double Kh = 4;
     double dx = current_pose.x-instruction.x;
     double dy = current_pose.y-instruction.y;
     double error_dist = sqrt(dx*dx+dy*dy);

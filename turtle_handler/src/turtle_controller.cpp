@@ -100,7 +100,7 @@ private:
             remaining_dist_ = sqrt(dx_*dx_+dy_*dy_);
 
 
-            if (remaining_dist_<= active_path_[path_index_].zone_data)
+            if (remaining_dist_<= active_path_[path_index_].zone_data+0.01)
                 ++path_index_;
 
             if (path_index_ >= active_path_.size()){
