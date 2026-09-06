@@ -54,15 +54,23 @@ private:
     }
 };
 
+static waypoint_interfaces::msg::MoveInstruction make_wp(double x, double y, double theta, double velocity, double zone_data)
+{
+  waypoint_interfaces::msg::MoveInstruction m;
+  m.target.x = x;
+  m.target.y = y;
+  m.target.theta = theta;
+  m.velocity = velocity;
+  m.zone_data = zone_data;
+  return m;
+}
+
 int main(int argc, char** argv){
-    MoveInstruction instruction;
-    instruction.target.x = 3;
-    instruction.target.y = 2;
-    instruction.target.theta = 0.5;
-    instruction.velocity = 1.0;
-    instruction.zone_data = 0.2;
-    std::vector<MoveInstruction> path;
-    path.push_back(instruction);
+    std::vector<MoveInstruction> path  = {
+        make_wp(4.0, 4.0, 0.2, 1.0, 0.1),
+        make_wp(8.0, 4.0, 0.4, 1.0, 0.5),
+        make_wp(8.0, 9.0, 0.6, 0.5, 0.0)
+    };
 
     rclcpp::init(argc, argv);
     auto node = std::make_shared<MissionClient>();
