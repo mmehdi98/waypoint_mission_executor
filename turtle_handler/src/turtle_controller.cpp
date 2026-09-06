@@ -26,6 +26,7 @@ public:
                         std::bind(&TurtleController::goalCallback, this, _1, _2),
                         std::bind(&TurtleController::cancelCallback, this, _1),
                         std::bind(&TurtleController::acceptedCallback, this, _1));
+        last_feedback_time_ = this->now();
     }
 
     void publishCmdCallback(const Pose& current_pose){
@@ -41,10 +42,17 @@ public:
             vel_cmd_.angular.z = 0;
         }
         vel_cmd_publisher_->publish(vel_cmd_);
+        
     }
 
     rclcpp_action::GoalResponse goalCallback([[maybe_unused]] const rclcpp_action::GoalUUID uuid, std::shared_ptr<const MoveAlongPath::Goal> goal){
         auto path = goal -> path;
+
+        if (path.size()==0){
+            RCLCPP_ERROR(this->get_logger(), "Path must contain at least one instruction");
+            return rclcpp_action::GoalResponse::REJECT;
+        }
+
         for (std::size_t i=0; i < path.size(); i++){
             const MoveInstruction& instruction = path[i];
             std::string reason = validateInstruction_(instruction);
@@ -70,13 +78,14 @@ private:
     rclcpp::Publisher<Twist>::SharedPtr vel_cmd_publisher_;
     rclcpp::Subscription<Pose>::SharedPtr pose_subscriber_;
     rclcpp_action::Server<MoveAlongPath>::SharedPtr motion_server_;
+    rclcpp::Time last_feedback_time_;
 
     Pose current_pose_;
     Twist vel_cmd_;
     MoveInstruction current_instruction_;
     std::shared_ptr<MoveAlongPathGoalHandle> active_goal_;
     std::deque<std::shared_ptr<MoveAlongPathGoalHandle>> request_queue_;
-    std::vector<MoveInstruction> active_path_;
+    // std::vector<MoveInstruction> active_path_;
     std::size_t path_index_ = 0;
     double dx_;
     double dy_;
@@ -88,32 +97,56 @@ private:
             if(!active_goal_ && !request_queue_.empty()){
                 path_index_ = 0;
                 active_goal_ = request_queue_.front();
+                last_feedback_time_ = this -> now();
             }
 
             if (!active_goal_)
                 return;
             
-            active_path_ = active_goal_ ->get_goal()->path;
+            auto& active_path = active_goal_ ->get_goal()->path;
 
-            dx_ = current_pose_.x - active_path_[path_index_].target.x;
-            dy_ = current_pose_.y - active_path_[path_index_].target.y;
+            dx_ = current_pose_.x - active_path[path_index_].target.x;
+            dy_ = current_pose_.y - active_path[path_index_].target.y;
             remaining_dist_ = sqrt(dx_*dx_+dy_*dy_);
 
+            const rclcpp::Time now = this->now();
+            if ((now - last_feedback_time_) >= rclcpp::Duration::from_seconds(0.2)){
+                auto feedback = std::make_shared<MoveAlongPath::Feedback>();
+                feedback -> current_position.x = current_pose_.x;
+                feedback -> current_position.y = current_pose_.y;
+                feedback -> current_position.theta = current_pose_.theta;
+                feedback -> current_target = current_instruction_.target;   
+                feedback -> distance_to_next = remaining_dist_;
+                active_goal_ -> publish_feedback(feedback);
+                last_feedback_time_ = now;
+            }
 
-            if (remaining_dist_<= active_path_[path_index_].zone_data+0.01)
+            if (remaining_dist_<= std::fmax(active_path[path_index_].zone_data, 0.01))
                 ++path_index_;
 
-            if (path_index_ >= active_path_.size()){
+            if (path_index_ >= active_path.size()){
                 auto result = std::make_shared<MoveAlongPath::Result>();
                 result -> message = "Finished path";
-                request_queue_[0]->succeed(result);
+                active_goal_->succeed(result);
                 request_queue_.pop_front();
                 active_goal_ = nullptr;
                 
                 continue;
             }
 
-            current_instruction_ = active_goal_->get_goal()->path[path_index_];
+            if (active_goal_ ->is_canceling()){
+                auto result = std::make_shared<MoveAlongPath::Result>();
+                RCLCPP_INFO(this->get_logger(), "Canceling goal");
+                result -> message = "Canceled Path";
+                active_goal_ -> canceled(result);
+                request_queue_.pop_front();
+                active_goal_ = nullptr;
+
+                continue;
+            }
+
+            current_instruction_ = active_path[path_index_];
+            
             return;
         }
     }
