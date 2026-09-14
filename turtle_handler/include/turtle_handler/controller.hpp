@@ -26,7 +26,7 @@ namespace turtle_handler{
         double v_ang;
     };
 
-    Command computeVelCmd(const Pose& current_pose, const MoveInstruction& instruction);
+    Command computeVelCmd(const Pose& current_pose, const MoveInstruction& instruction, const double& Kv, const double& Kh);
     
 }
 #endif

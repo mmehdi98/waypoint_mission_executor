@@ -20,6 +20,10 @@ class TurtleController : public rclcpp::Node
 {
 public:
     TurtleController() : Node("turtle_controller"){
+        this -> declare_parameter("Kv", 20.0);
+        this -> declare_parameter("Kh", 4.0);
+        Kv_ = this->get_parameter("Kv").as_double();
+        Kh_ = this->get_parameter("Kh").as_double();
         pose_subscriber_ = this -> create_subscription<Pose>("turtle1/pose", 10, std::bind(&TurtleController::publishCmdCallback, this, _1));
         vel_cmd_publisher_ = this -> create_publisher<Twist>("turtle1/cmd_vel",10);
         motion_server_ = rclcpp_action::create_server<MoveAlongPath>(this, "move_along_path", 
@@ -35,7 +39,10 @@ public:
         motionPlanner_();
         
         if (active_goal_){
-            vel_cmd_ = turtle_handler::toTwist(turtle_handler::computeVelCmd(turtle_handler::toPose(current_pose), turtle_handler::toMoveInstruction(current_instruction_)));
+            vel_cmd_ = turtle_handler::toTwist(
+                        turtle_handler::computeVelCmd(turtle_handler::toPose(current_pose), 
+                        turtle_handler::toMoveInstruction(current_instruction_),
+                        Kv_, Kh_));
         }
         else{
             vel_cmd_.linear.x = 0;
@@ -90,6 +97,8 @@ private:
     double dx_;
     double dy_;
     double remaining_dist_;
+    double Kv_;
+    double Kh_;
 
     void motionPlanner_(){
         
