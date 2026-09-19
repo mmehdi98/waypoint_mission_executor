@@ -1,4 +1,5 @@
 <launch>
     <node pkg="turtle_handler" exec="turtle_controller"/>
     <node pkg="turtle_handler" exec="mission_client"/>
+    <node pkg="turtlesim" exec="turtlesim_node"/>
 </launch>
